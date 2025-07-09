@@ -4,21 +4,21 @@ const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 const IRRELEVANT_KEYWORDS = [
-  "hello",
-  "hi",
-  "hey",
-  "selam",
-  "merhaba",
-  "naber",
-  "test",
-  "thanks",
-  "thank you",
-  "how are you",
+  'hello',
+  'hi',
+  'hey',
+  'selam',
+  'merhaba',
+  'naber',
+  'test',
+  'thanks',
+  'thank you',
+  'how are you',
   "what's up",
-  "good morning",
-  "good night",
-  "bye",
-  "see you",
+  'good morning',
+  'good night',
+  'bye',
+  'see you',
 ];
 
 export async function POST(req: NextRequest) {
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     const body = {
       model: 'compound-beta',
-      temperature: 0.2, // ✅ TUTARLILIK ARTIRILDI
+      temperature: 0.2, // ✅ Daha tutarlı sonuçlar için düşük sıcaklık
       messages: [
         {
           role: 'user',
@@ -81,7 +81,8 @@ Input: ${prompt}`,
     }
 
     return NextResponse.json({ riskLevel, explanation });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'An error occurred' }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'An unknown error occurred';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
