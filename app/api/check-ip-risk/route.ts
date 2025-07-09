@@ -21,6 +21,9 @@ const IRRELEVANT_KEYWORDS = [
   'see you',
 ];
 
+// Simple in-memory cache (resets on every deploy)
+const cache = new Map<string, { riskLevel: number; explanation: string }>();
+
 export async function POST(req: NextRequest) {
   try {
     const { prompt } = await req.json();
@@ -39,9 +42,15 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
+    // Check cache first
+    if (cache.has(prompt)) {
+      return NextResponse.json(cache.get(prompt)!);
+    }
+
     const body = {
       model: 'compound-beta',
-      temperature: 0.2, // ✅ Daha tutarlı sonuçlar için düşük sıcaklık
+      temperature: 0.2,
+      top_p: 0.1,
       messages: [
         {
           role: 'user',
@@ -79,6 +88,9 @@ Input: ${prompt}`,
     if (riskLevel === null || explanation === null) {
       return NextResponse.json({ error: 'API response format is incorrect' }, { status: 500 });
     }
+
+    // Save to cache
+    cache.set(prompt, { riskLevel, explanation });
 
     return NextResponse.json({ riskLevel, explanation });
   } catch (error) {
