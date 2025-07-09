@@ -87,7 +87,7 @@ export default function Home() {
   disabled={loading}
   className="mt-6 px-10 py-4 bg-gray-200 text-gray-900 font-semibold rounded-lg shadow-md hover:bg-gray-300 disabled:opacity-60 transition duration-300"
 >
-  {loading ? 'Checking...' : 'Check Risk'}
+  {loading ? 'Analyzing...' : 'Analyze Risk'}
 </button>
 
 
