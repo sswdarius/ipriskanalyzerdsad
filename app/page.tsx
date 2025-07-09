@@ -1,95 +1,125 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
+
+import { useState } from 'react';
+
+type HistoryItem = {
+  prompt: string;
+  riskLevel: number;
+  explanation: string;
+};
 
 export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>app/page.tsx</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [prompt, setPrompt] = useState('');
+  const [riskLevel, setRiskLevel] = useState<number | null>(null);
+  const [explanation, setExplanation] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
+  const handleCheck = async () => {
+    if (!prompt.trim()) return;
+    setLoading(true);
+    setRiskLevel(null);
+    setExplanation('');
+
+    try {
+      const res = await fetch('/api/check-ip-risk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+
+      const data = await res.json();
+
+      if (data.riskLevel !== undefined && data.explanation) {
+        setRiskLevel(data.riskLevel);
+        setExplanation(data.explanation);
+
+        setHistory(prev => [
+          { prompt, riskLevel: data.riskLevel, explanation: data.explanation },
+          ...prev.slice(0, 4),
+        ]);
+      } else {
+        setExplanation(data.error || 'No response');
+      }
+    } catch {
+      setExplanation('Error occurred while contacting the API.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getRiskColor = () => {
+    if (riskLevel === null) return 'border-gray-300';
+    if (riskLevel >= 80) return 'border-red-500';
+    if (riskLevel >= 40) return 'border-yellow-500';
+    return 'border-green-500';
+  };
+
+  return (
+    <main className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-900 px-4 py-12 animate-fade-in">
+      <h1 className="text-4xl sm:text-5xl font-extrabold mb-10 tracking-tight text-gray-800">
+        IP Risk Analyzer
+      </h1>
+
+      <div className="relative w-full max-w-3xl">
+        <textarea
+          className="w-full h-40 p-4 text-lg bg-white text-gray-900 rounded-md border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"
+          placeholder="Describe your idea or action. E.g., 'Creating a similar logo to Nike'"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+        />
+
+        <img
+          src="/ippy.png"
+          alt="hello"
+          className="absolute top-[-79px] right-2 w-[80px] h-[80px] cursor-pointer transition-transform"
+          onMouseEnter={(e) => {
+            e.currentTarget.classList.add('jump');
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.classList.remove('jump');
+          }}
+        />
+      </div>
+
+      <button
+  onClick={handleCheck}
+  disabled={loading}
+  className="mt-6 px-10 py-4 bg-gray-200 text-gray-900 font-semibold rounded-lg shadow-md hover:bg-gray-300 disabled:opacity-60 transition duration-300"
+>
+  {loading ? 'Checking...' : 'Check Risk'}
+</button>
+
+
+      {(riskLevel !== null || explanation) && (
+        <div
+          className={`mt-10 max-w-3xl w-full border-l-4 p-6 rounded-md bg-white ${getRiskColor()}`}
+        >
+          <div className="mb-2 text-sm font-mono text-gray-500">RISK LEVEL:</div>
+          <div className="text-3xl font-bold mb-4">{riskLevel}%</div>
+          <div className="mb-2 text-sm font-mono text-gray-500">EXPLANATION:</div>
+          <p className="text-lg leading-relaxed text-gray-800">{explanation}</p>
         </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      )}
+
+      {history.length > 0 && (
+        <div className="mt-12 max-w-3xl w-full">
+          <h2 className="text-2xl font-semibold mb-4">Previous Checks</h2>
+          <ul className="space-y-4">
+            {history.map((item, idx) => (
+              <li
+                key={idx}
+                className="p-4 bg-white rounded border border-gray-200 shadow-sm"
+              >
+                <div className="text-sm font-mono text-gray-500 mb-1">Prompt:</div>
+                <div className="mb-2">{item.prompt}</div>
+                <div className="text-sm font-mono text-gray-600">Risk: {item.riskLevel}%</div>
+                <div className="text-sm text-gray-700">{item.explanation}</div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </main>
   );
 }
