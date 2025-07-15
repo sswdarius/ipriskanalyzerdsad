@@ -60,7 +60,7 @@ export default function Home() {
     setDetectedItems([]);
 
     try {
-      let body: RequestBody = {};
+      const body: RequestBody = {};
 
       if (imageFile) {
         const base64 = await toBase64(imageFile);
