@@ -34,17 +34,17 @@ export async function POST(req: NextRequest) {
       // Text detection (OCR)
       const [textResult] = await client.textDetection({ image: { content: imageBuffer } });
       const textsRaw = textResult.textAnnotations?.map(t => t.description.toLowerCase()) || [];
-      // En uzun textAnnotations[0] genel text, diğerleri kelimeler, biz kelimeleri alacağız:
+      // En uzun textAnnotations[0] genel text, diğerleri kelimeler
       const texts = textsRaw.length > 1 ? textsRaw.slice(1) : [];
 
-      detectedItems = [...new Set([...logos, ...texts])]; // logolar ve yazılar
+      detectedItems = [...new Set([...logos, ...texts])];
 
       if (detectedItems.length === 0) {
         detectedItems.push('No detected logos or text');
       }
     }
 
-    // Prompt varsa kontrol
+    // Prompt ya da imageBase64 yoksa hata
     if ((!prompt || typeof prompt !== 'string') && detectedItems.length === 0) {
       return NextResponse.json({ error: 'Prompt or image required' }, { status: 400 });
     }
@@ -63,7 +63,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Groq prompt hazırlığı
-
     let groqPrompt = 'Please provide a risk level (0-100%) and a detailed explanation regarding intellectual property risk for the following input. Respond ONLY in this format:\nRISK: <percentage>\nEXPLANATION: <detailed explanation>\n';
 
     if (imageBase64) {
@@ -77,6 +76,7 @@ export async function POST(req: NextRequest) {
     const body = {
       model: 'compound-beta',
       temperature: 0.2,
+      top_p: 0.1,
       messages: [{ role: 'user', content: groqPrompt }],
     };
 
@@ -98,7 +98,6 @@ export async function POST(req: NextRequest) {
     const data = await response.json();
     const answer = data.choices?.[0]?.message?.content || '';
 
-    // Parse et
     const riskMatch = answer.match(/RISK:\s*(\d{1,3})/i);
     const explanationMatch = answer.match(/EXPLANATION:\s*([\s\S]*)/i);
 

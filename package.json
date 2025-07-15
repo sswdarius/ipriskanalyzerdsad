@@ -9,7 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
+<<<<<<< HEAD
     "@google-cloud/vision": "^5.3.0",
+=======
+>>>>>>> 2876e1ac1b8deba8229712059eb4508b59c3312e
     "next": "15.3.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

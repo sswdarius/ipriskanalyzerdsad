@@ -6,7 +6,7 @@ type HistoryItem = {
   prompt: string;
   riskLevel: number;
   explanation: string;
-  type: 'text' | 'image';
+  type?: 'text' | 'image';
 };
 
 export default function Home() {
@@ -16,6 +16,7 @@ export default function Home() {
   const [explanation, setExplanation] = useState('');
   const [detectedItems, setDetectedItems] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -26,6 +27,14 @@ export default function Home() {
       setDetectedItems([]);
     }
   };
+
+  const toBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
 
   const handleCheck = async () => {
     setLoading(true);
@@ -63,6 +72,16 @@ export default function Home() {
         } else {
           setDetectedItems([]);
         }
+
+        setHistory(prev => [
+          {
+            prompt: prompt || imageFile?.name || 'Image upload',
+            riskLevel: data.riskLevel,
+            explanation: data.explanation,
+            type: imageFile ? 'image' : 'text',
+          },
+          ...prev.slice(0, 4),
+        ]);
       } else {
         setExplanation(data.error || 'No response');
       }
@@ -72,14 +91,6 @@ export default function Home() {
       setLoading(false);
     }
   };
-
-  const toBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = error => reject(error);
-    });
 
   const getRiskColor = () => {
     if (riskLevel === null) return 'border-gray-300';
@@ -96,12 +107,12 @@ export default function Home() {
 
       <div className="relative w-full max-w-3xl mb-6">
         <textarea
-          className="w-full h-40 p-4 text-lg bg-white text-gray-900 rounded-md border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-600 transition resize-none"
+          className="w-full h-40 p-4 text-lg bg-white text-gray-900 rounded-md border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"
           placeholder="Describe your idea or action. E.g., 'Creating a similar logo to Nike'"
           value={prompt}
           onChange={(e) => {
             setPrompt(e.target.value);
-            // Burada sonuçları silmiyoruz artık, sonuç kaybolmasın diye
+            // sonuçların kaybolmaması için burayı temizlemiyoruz
           }}
           disabled={loading}
         />
@@ -149,26 +160,45 @@ export default function Home() {
         <div
           className={`mt-10 max-w-3xl w-full border-l-4 p-6 rounded-md bg-white ${getRiskColor()}`}
         >
-          <div className="mb-4 font-semibold text-lg">Detected Items:</div>
-          {detectedItems.length > 0 ? (
-            <ul className="mb-6 flex flex-wrap gap-2">
-              {detectedItems.map((item, idx) => (
-                <li
-                  key={idx}
-                  className="bg-gray-100 rounded-full px-3 py-1 text-sm font-medium text-gray-700 border border-gray-300"
-                >
-                  {item}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="mb-6 text-gray-500 italic">No specific detected items.</div>
+          {detectedItems.length > 0 && (
+            <>
+              <div className="mb-4 font-semibold text-lg">Detected Items:</div>
+              <ul className="mb-6 flex flex-wrap gap-2">
+                {detectedItems.map((item, idx) => (
+                  <li
+                    key={idx}
+                    className="bg-gray-100 rounded-full px-3 py-1 text-sm font-medium text-gray-700 border border-gray-300"
+                  >
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
 
           <div className="text-sm font-mono text-gray-500 mb-2">RISK LEVEL:</div>
           <div className="text-3xl font-bold mb-4">{riskLevel}%</div>
           <div className="text-sm font-mono text-gray-500 mb-2">EXPLANATION:</div>
           <p className="text-lg leading-relaxed text-gray-800">{explanation}</p>
+        </div>
+      )}
+
+      {history.length > 0 && (
+        <div className="mt-12 max-w-3xl w-full">
+          <h2 className="text-2xl font-semibold mb-4">Previous Checks</h2>
+          <ul className="space-y-4">
+            {history.map((item, idx) => (
+              <li
+                key={idx}
+                className="p-4 bg-white rounded border border-gray-200 shadow-sm"
+              >
+                <div className="text-sm font-mono text-gray-500 mb-1">Prompt:</div>
+                <div className="mb-2">{item.prompt}</div>
+                <div className="text-sm font-mono text-gray-600">Risk: {item.riskLevel}%</div>
+                <div className="text-sm text-gray-700">{item.explanation}</div>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </main>

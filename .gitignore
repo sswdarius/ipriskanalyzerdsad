@@ -39,6 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+<<<<<<< HEAD
 
 *.json
 app/api/check-ip-risk/*.json
+=======
+>>>>>>> 2876e1ac1b8deba8229712059eb4508b59c3312e
