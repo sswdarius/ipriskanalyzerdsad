@@ -49,7 +49,7 @@ export default function Home() {
     setDetectedItems([]);
 
     try {
-      const body: RequestBody = {};
+      let body: RequestBody = {};
       if (imageFile) {
         const base64 = await toBase64(imageFile);
         body.imageBase64 = base64;
@@ -118,7 +118,6 @@ export default function Home() {
           value={prompt}
           onChange={(e) => {
             setPrompt(e.target.value);
-            // sonuçların kaybolmaması için burayı temizlemiyoruz
           }}
           disabled={loading}
         />

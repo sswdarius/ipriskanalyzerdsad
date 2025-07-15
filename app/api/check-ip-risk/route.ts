@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import vision from '@google-cloud/vision';
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
-const GOOGLE_CREDENTIALS_PATH = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+const GROQ_API_KEY = process.env.GROQ_API_KEY!;
+const GOOGLE_CREDENTIALS_PATH = process.env.GOOGLE_APPLICATION_CREDENTIALS!;
 
 const IRRELEVANT_KEYWORDS = [
   'hello', 'hi', 'hey', 'selam', 'merhaba', 'naber', 'test',
@@ -11,9 +11,14 @@ const IRRELEVANT_KEYWORDS = [
   'good night', 'bye', 'see you',
 ];
 
+type RequestBody = {
+  prompt?: string;
+  imageBase64?: string;
+};
+
 export async function POST(req: NextRequest) {
   try {
-    const { prompt, imageBase64 } = await req.json();
+    const { prompt, imageBase64 }: RequestBody = await req.json();
 
     let detectedItems: string[] = [];
 
@@ -22,7 +27,6 @@ export async function POST(req: NextRequest) {
       keyFilename: GOOGLE_CREDENTIALS_PATH,
     });
 
-    // Görsel varsa label, logo ve text OCR al
     if (imageBase64 && typeof imageBase64 === 'string') {
       const base64Content = imageBase64.replace(/^data:image\/\w+;base64,/, '');
       const imageBuffer = Buffer.from(base64Content, 'base64');
@@ -44,12 +48,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Prompt ya da imageBase64 yoksa hata
     if ((!prompt || typeof prompt !== 'string') && detectedItems.length === 0) {
       return NextResponse.json({ error: 'Prompt or image required' }, { status: 400 });
     }
 
-    // Metin alakasızsa reddet
     if (prompt) {
       const lowerPrompt = prompt.toLowerCase();
       if (
@@ -62,7 +64,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Groq prompt hazırlığı
     let groqPrompt = 'Please provide a risk level (0-100%) and a detailed explanation regarding intellectual property risk for the following input. Respond ONLY in this format:\nRISK: <percentage>\nEXPLANATION: <detailed explanation>\n';
 
     if (imageBase64) {
@@ -80,7 +81,6 @@ export async function POST(req: NextRequest) {
       messages: [{ role: 'user', content: groqPrompt }],
     };
 
-    // Groq API çağrısı
     const response = await fetch(GROQ_API_URL, {
       method: 'POST',
       headers: {
@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ riskLevel, explanation, detectedItems });
 
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'An error occurred';
-    return NextResponse.json({ error: message }, { status: 500 });
+    const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
