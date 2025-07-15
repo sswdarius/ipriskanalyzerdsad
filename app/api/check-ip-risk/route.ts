@@ -110,8 +110,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ riskLevel, explanation, detectedItems });
 
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: message || 'An error occurred' }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'An error occurred';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

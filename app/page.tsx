@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, ChangeEvent } from 'react';
+import Image from 'next/image';
 
 type HistoryItem = {
   prompt: string;
@@ -15,12 +16,12 @@ type RequestBody = {
 };
 
 export default function Home() {
-  const [prompt, setPrompt] = useState<string>('');
+  const [prompt, setPrompt] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [riskLevel, setRiskLevel] = useState<number | null>(null);
-  const [explanation, setExplanation] = useState<string>('');
+  const [explanation, setExplanation] = useState('');
   const [detectedItems, setDetectedItems] = useState<string[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -38,7 +39,7 @@ export default function Home() {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
+      reader.onerror = error => reject(error);
     });
 
   const handleCheck = async () => {
@@ -49,7 +50,6 @@ export default function Home() {
 
     try {
       const body: RequestBody = {};
-
       if (imageFile) {
         const base64 = await toBase64(imageFile);
         body.imageBase64 = base64;
@@ -79,7 +79,7 @@ export default function Home() {
           setDetectedItems([]);
         }
 
-        setHistory((prev) => [
+        setHistory(prev => [
           {
             prompt: prompt || imageFile?.name || 'Image upload',
             riskLevel: data.riskLevel,
@@ -89,9 +89,9 @@ export default function Home() {
           ...prev.slice(0, 4),
         ]);
       } else {
-        setExplanation(data.error || 'No response from API');
+        setExplanation(data.error || 'No response');
       }
-    } catch (error) {
+    } catch {
       setExplanation('Error occurred while contacting the API.');
     } finally {
       setLoading(false);
@@ -116,14 +116,19 @@ export default function Home() {
           className="w-full h-40 p-4 text-lg bg-white text-gray-900 rounded-md border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"
           placeholder="Describe your idea or action. E.g., 'Creating a similar logo to Nike'"
           value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
+          onChange={(e) => {
+            setPrompt(e.target.value);
+            // sonuçların kaybolmaması için burayı temizlemiyoruz
+          }}
           disabled={loading}
         />
 
-        <img
+        <Image
           src="/ippy.png"
           alt="ippy mascot"
-          className="absolute top-[-79px] right-2 w-[80px] h-[80px] cursor-pointer transition-transform"
+          width={80}
+          height={80}
+          className="absolute top-[-79px] right-2 cursor-pointer transition-transform"
           onMouseEnter={(e) => e.currentTarget.classList.add('jump')}
           onMouseLeave={(e) => e.currentTarget.classList.remove('jump')}
         />
