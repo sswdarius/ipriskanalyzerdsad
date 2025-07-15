@@ -9,13 +9,18 @@ type HistoryItem = {
   type?: 'text' | 'image';
 };
 
+type RequestBody = {
+  prompt?: string;
+  imageBase64?: string;
+};
+
 export default function Home() {
-  const [prompt, setPrompt] = useState('');
+  const [prompt, setPrompt] = useState<string>('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [riskLevel, setRiskLevel] = useState<number | null>(null);
-  const [explanation, setExplanation] = useState('');
+  const [explanation, setExplanation] = useState<string>('');
   const [detectedItems, setDetectedItems] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -33,7 +38,7 @@ export default function Home() {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = () => resolve(reader.result as string);
-      reader.onerror = error => reject(error);
+      reader.onerror = (error) => reject(error);
     });
 
   const handleCheck = async () => {
@@ -43,12 +48,13 @@ export default function Home() {
     setDetectedItems([]);
 
     try {
-      let body: any = {};
+      const body: RequestBody = {};
+
       if (imageFile) {
         const base64 = await toBase64(imageFile);
-        body = { imageBase64: base64 };
+        body.imageBase64 = base64;
       } else if (prompt.trim()) {
-        body = { prompt };
+        body.prompt = prompt;
       } else {
         setExplanation('Please enter text or select an image.');
         setLoading(false);
@@ -73,7 +79,7 @@ export default function Home() {
           setDetectedItems([]);
         }
 
-        setHistory(prev => [
+        setHistory((prev) => [
           {
             prompt: prompt || imageFile?.name || 'Image upload',
             riskLevel: data.riskLevel,
@@ -83,9 +89,9 @@ export default function Home() {
           ...prev.slice(0, 4),
         ]);
       } else {
-        setExplanation(data.error || 'No response');
+        setExplanation(data.error || 'No response from API');
       }
-    } catch {
+    } catch (error) {
       setExplanation('Error occurred while contacting the API.');
     } finally {
       setLoading(false);
@@ -110,10 +116,7 @@ export default function Home() {
           className="w-full h-40 p-4 text-lg bg-white text-gray-900 rounded-md border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"
           placeholder="Describe your idea or action. E.g., 'Creating a similar logo to Nike'"
           value={prompt}
-          onChange={(e) => {
-            setPrompt(e.target.value);
-            // sonuçların kaybolmaması için burayı temizlemiyoruz
-          }}
+          onChange={(e) => setPrompt(e.target.value)}
           disabled={loading}
         />
 
