@@ -11,19 +11,27 @@ const IRRELEVANT_KEYWORDS = [
   'good night', 'bye', 'see you',
 ];
 
+type RequestBody = {
+  prompt?: string;
+  imageBase64?: string;
+};
+
+type GroqRequestBody = {
+  model: string;
+  temperature: number;
+  top_p: number;
+  messages: { role: string; content: string }[];
+};
+
 export async function POST(req: NextRequest) {
   try {
-    const { prompt, imageBase64 } = await req.json();
+    const { prompt, imageBase64 }: RequestBody = await req.json();
 
-    if ((!prompt || typeof prompt !== 'string') && !imageBase64) {
-      return NextResponse.json({ error: 'Prompt or imageBase64 required' }, { status: 400 });
-    }
+    let detectedItems: string[] = [];
 
     const client = new vision.ImageAnnotatorClient({
       keyFilename: GOOGLE_CREDENTIALS_PATH,
     });
-
-    let detectedItems: string[] = [];
 
     if (imageBase64 && typeof imageBase64 === 'string') {
       const base64Content = imageBase64.replace(/^data:image\/\w+;base64,/, '');
@@ -37,7 +45,14 @@ export async function POST(req: NextRequest) {
       const texts = textsRaw.length > 1 ? textsRaw.slice(1) : [];
 
       detectedItems = [...new Set([...logos, ...texts])];
-      if (detectedItems.length === 0) detectedItems.push('No detected logos or text');
+
+      if (detectedItems.length === 0) {
+        detectedItems.push('No detected logos or text');
+      }
+    }
+
+    if ((!prompt || typeof prompt !== 'string') && detectedItems.length === 0) {
+      return NextResponse.json({ error: 'Prompt or image required' }, { status: 400 });
     }
 
     if (prompt) {
@@ -62,7 +77,7 @@ export async function POST(req: NextRequest) {
       groqPrompt += `Input text: ${prompt}`;
     }
 
-    const body = {
+    const body: GroqRequestBody = {
       model: 'compound-beta',
       temperature: 0.2,
       top_p: 0.1,
@@ -97,8 +112,9 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ riskLevel, explanation, detectedItems });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'An unknown error occurred';
-    return NextResponse.json({ error: message }, { status: 500 });
+
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
