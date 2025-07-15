@@ -1,18 +1,11 @@
 'use client';
 
 import { useState, ChangeEvent } from 'react';
-import Image from 'next/image';
 
 type HistoryItem = {
   prompt: string;
   riskLevel: number;
   explanation: string;
-  type?: 'text' | 'image';
-};
-
-type RequestBody = {
-  prompt?: string;
-  imageBase64?: string;
 };
 
 export default function Home() {
@@ -24,16 +17,6 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
-  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setImageFile(e.target.files[0]);
-      setPrompt(''); // temizle, metinle karışmasın
-      setRiskLevel(null);
-      setExplanation('');
-      setDetectedItems([]);
-    }
-  };
-
   const toBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -42,6 +25,16 @@ export default function Home() {
       reader.onerror = error => reject(error);
     });
 
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setImageFile(e.target.files[0]);
+      setPrompt('');
+      setRiskLevel(null);
+      setExplanation('');
+      setDetectedItems([]);
+    }
+  };
+
   const handleCheck = async () => {
     setLoading(true);
     setRiskLevel(null);
@@ -49,7 +42,8 @@ export default function Home() {
     setDetectedItems([]);
 
     try {
-      let body: RequestBody = {};
+      let body: { prompt?: string; imageBase64?: string } = {};
+
       if (imageFile) {
         const base64 = await toBase64(imageFile);
         body.imageBase64 = base64;
@@ -72,20 +66,9 @@ export default function Home() {
       if (data.riskLevel !== undefined && data.explanation) {
         setRiskLevel(data.riskLevel);
         setExplanation(data.explanation);
-
-        if (data.detectedItems && Array.isArray(data.detectedItems)) {
-          setDetectedItems(data.detectedItems);
-        } else {
-          setDetectedItems([]);
-        }
-
+        setDetectedItems(data.detectedItems || []);
         setHistory(prev => [
-          {
-            prompt: prompt || imageFile?.name || 'Image upload',
-            riskLevel: data.riskLevel,
-            explanation: data.explanation,
-            type: imageFile ? 'image' : 'text',
-          },
+          { prompt: prompt || 'Image', riskLevel: data.riskLevel, explanation: data.explanation },
           ...prev.slice(0, 4),
         ]);
       } else {
@@ -116,18 +99,14 @@ export default function Home() {
           className="w-full h-40 p-4 text-lg bg-white text-gray-900 rounded-md border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"
           placeholder="Describe your idea or action. E.g., 'Creating a similar logo to Nike'"
           value={prompt}
-          onChange={(e) => {
-            setPrompt(e.target.value);
-          }}
+          onChange={(e) => setPrompt(e.target.value)}
           disabled={loading}
         />
 
-        <Image
+        <img
           src="/ippy.png"
           alt="ippy mascot"
-          width={80}
-          height={80}
-          className="absolute top-[-79px] right-2 cursor-pointer transition-transform"
+          className="absolute top-[-79px] right-2 w-[80px] h-[80px] cursor-pointer transition-transform"
           onMouseEnter={(e) => e.currentTarget.classList.add('jump')}
           onMouseLeave={(e) => e.currentTarget.classList.remove('jump')}
         />
@@ -164,9 +143,7 @@ export default function Home() {
       </button>
 
       {(riskLevel !== null || explanation) && (
-        <div
-          className={`mt-10 max-w-3xl w-full border-l-4 p-6 rounded-md bg-white ${getRiskColor()}`}
-        >
+        <div className={`mt-10 max-w-3xl w-full border-l-4 p-6 rounded-md bg-white ${getRiskColor()}`}>
           {detectedItems.length > 0 && (
             <>
               <div className="mb-4 font-semibold text-lg">Detected Items:</div>

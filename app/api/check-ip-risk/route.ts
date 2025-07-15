@@ -11,45 +11,33 @@ const IRRELEVANT_KEYWORDS = [
   'good night', 'bye', 'see you',
 ];
 
-type RequestBody = {
-  prompt?: string;
-  imageBase64?: string;
-};
-
 export async function POST(req: NextRequest) {
   try {
-    const { prompt, imageBase64 }: RequestBody = await req.json();
+    const { prompt, imageBase64 } = await req.json();
 
-    let detectedItems: string[] = [];
+    if ((!prompt || typeof prompt !== 'string') && !imageBase64) {
+      return NextResponse.json({ error: 'Prompt or imageBase64 required' }, { status: 400 });
+    }
 
-    // Google Vision client
     const client = new vision.ImageAnnotatorClient({
       keyFilename: GOOGLE_CREDENTIALS_PATH,
     });
+
+    let detectedItems: string[] = [];
 
     if (imageBase64 && typeof imageBase64 === 'string') {
       const base64Content = imageBase64.replace(/^data:image\/\w+;base64,/, '');
       const imageBuffer = Buffer.from(base64Content, 'base64');
 
-      // Logo detection
       const [logoResult] = await client.logoDetection({ image: { content: imageBuffer } });
       const logos = logoResult.logoAnnotations?.map(l => l.description.toLowerCase()) || [];
 
-      // Text detection (OCR)
       const [textResult] = await client.textDetection({ image: { content: imageBuffer } });
       const textsRaw = textResult.textAnnotations?.map(t => t.description.toLowerCase()) || [];
-      // En uzun textAnnotations[0] genel text, diğerleri kelimeler
       const texts = textsRaw.length > 1 ? textsRaw.slice(1) : [];
 
       detectedItems = [...new Set([...logos, ...texts])];
-
-      if (detectedItems.length === 0) {
-        detectedItems.push('No detected logos or text');
-      }
-    }
-
-    if ((!prompt || typeof prompt !== 'string') && detectedItems.length === 0) {
-      return NextResponse.json({ error: 'Prompt or image required' }, { status: 400 });
+      if (detectedItems.length === 0) detectedItems.push('No detected logos or text');
     }
 
     if (prompt) {
@@ -109,9 +97,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ riskLevel, explanation, detectedItems });
-
-  } catch (err: unknown) {
-    const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'An unknown error occurred';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
