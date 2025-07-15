@@ -19,20 +19,16 @@
     }
   }
 }
-<<<<<<< HEAD
+
 @keyframes bounce {
-=======
 @keyframes jumpAnim {
->>>>>>> 2876e1ac1b8deba8229712059eb4508b59c3312e
   0%, 100% {
     transform: translateY(0);
   }
   50% {
-<<<<<<< HEAD
     transform: translateY(-15px);
 =======
     transform: translateY(-20px);
->>>>>>> 2876e1ac1b8deba8229712059eb4508b59c3312e
   }
 }
 
@@ -46,4 +42,4 @@
   animation: jumpAnim 0.5s ease infinite;
 }
 
->>>>>>> 2876e1ac1b8deba8229712059eb4508b59c3312e
+
