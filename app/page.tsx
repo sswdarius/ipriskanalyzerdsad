@@ -50,6 +50,7 @@ export default function Home() {
 
     try {
       let body: RequestBody = {};
+
       if (imageFile) {
         const base64 = await toBase64(imageFile);
         body.imageBase64 = base64;

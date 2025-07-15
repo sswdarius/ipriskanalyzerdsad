@@ -34,27 +34,33 @@ export async function POST(req: NextRequest) {
     });
 
     if (imageBase64 && typeof imageBase64 === 'string') {
+      // Base64 içeriği ayıkla ve buffer yap
       const base64Content = imageBase64.replace(/^data:image\/\w+;base64,/, '');
       const imageBuffer = Buffer.from(base64Content, 'base64');
 
+      // Logo tespiti
       const [logoResult] = await client.logoDetection({ image: { content: imageBuffer } });
       const logos = logoResult.logoAnnotations?.map(l => l.description.toLowerCase()) || [];
 
+      // Metin tespiti
       const [textResult] = await client.textDetection({ image: { content: imageBuffer } });
       const textsRaw = textResult.textAnnotations?.map(t => t.description.toLowerCase()) || [];
+      // İlk metin tüm metni içerdiği için atla
       const texts = textsRaw.length > 1 ? textsRaw.slice(1) : [];
 
-      detectedItems = [...new Set([...logos, ...texts])];
+      detectedItems = Array.from(new Set([...logos, ...texts]));
 
       if (detectedItems.length === 0) {
         detectedItems.push('No detected logos or text');
       }
     }
 
+    // Eğer hem prompt hem de detectedItems yoksa hata dön
     if ((!prompt || typeof prompt !== 'string') && detectedItems.length === 0) {
       return NextResponse.json({ error: 'Prompt or image required' }, { status: 400 });
     }
 
+    // Anlamsız/önemsiz sorguları filtrele
     if (prompt) {
       const lowerPrompt = prompt.toLowerCase();
       if (
@@ -67,12 +73,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Groq API için prompt oluştur
     let groqPrompt = 'Please provide a risk level (0-100%) and a detailed explanation regarding intellectual property risk for the following input. Respond ONLY in this format:\nRISK: <percentage>\nEXPLANATION: <detailed explanation>\n';
 
     if (imageBase64) {
       groqPrompt += `Detected brand logos or text: ${detectedItems.join(', ')}.\n`;
     }
-
     if (prompt) {
       groqPrompt += `Input text: ${prompt}`;
     }
@@ -99,8 +105,10 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await response.json();
+
     const answer = data.choices?.[0]?.message?.content || '';
 
+    // Risk ve açıklamayı regex ile al
     const riskMatch = answer.match(/RISK:\s*(\d{1,3})/i);
     const explanationMatch = answer.match(/EXPLANATION:\s*([\s\S]*)/i);
 
