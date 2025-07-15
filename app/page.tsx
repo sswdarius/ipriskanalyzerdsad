@@ -24,6 +24,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
+  // Kullanıcı yeni bir dosya seçtiğinde prompt ve önceki sonuçlar temizleniyor
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setImageFile(e.target.files[0]);
@@ -34,6 +35,16 @@ export default function Home() {
     }
   };
 
+  // prompt değiştiğinde önceki analizler temizleniyor ki kafa karışmasın
+  const handlePromptChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    setPrompt(e.target.value);
+    setRiskLevel(null);
+    setExplanation('');
+    setDetectedItems([]);
+    setImageFile(null);
+  };
+
+  // File objesini base64 stringe çevirir
   const toBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -74,7 +85,7 @@ export default function Home() {
         setRiskLevel(data.riskLevel);
         setExplanation(data.explanation);
 
-        if (data.detectedItems && Array.isArray(data.detectedItems)) {
+        if (data.detectedItems && Array.isArray(data.detectedItems) && data.detectedItems.length > 0) {
           setDetectedItems(data.detectedItems);
         } else {
           setDetectedItems([]);
@@ -87,13 +98,17 @@ export default function Home() {
             explanation: data.explanation,
             type: imageFile ? 'image' : 'text',
           },
-          ...prev.slice(0, 4),
+          ...prev.slice(0, 4), // sadece son 5 kayıt
         ]);
       } else {
-        setExplanation(data.error || 'No response');
+        setExplanation(data.error || 'No valid response from API.');
       }
-    } catch {
-      setExplanation('Error occurred while contacting the API.');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setExplanation(`API error: ${error.message}`);
+      } else {
+        setExplanation('Unknown error occurred during API call.');
+      }
     } finally {
       setLoading(false);
     }
@@ -117,9 +132,7 @@ export default function Home() {
           className="w-full h-40 p-4 text-lg bg-white text-gray-900 rounded-md border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"
           placeholder="Describe your idea or action. E.g., 'Creating a similar logo to Nike'"
           value={prompt}
-          onChange={(e) => {
-            setPrompt(e.target.value);
-          }}
+          onChange={handlePromptChange}
           disabled={loading}
         />
 
@@ -168,7 +181,7 @@ export default function Home() {
         <div
           className={`mt-10 max-w-3xl w-full border-l-4 p-6 rounded-md bg-white ${getRiskColor()}`}
         >
-          {detectedItems.length > 0 && (
+          {detectedItems.length > 0 ? (
             <>
               <div className="mb-4 font-semibold text-lg">Detected Items:</div>
               <ul className="mb-6 flex flex-wrap gap-2">
@@ -182,10 +195,12 @@ export default function Home() {
                 ))}
               </ul>
             </>
+          ) : (
+            <p className="mb-6 text-sm text-gray-500">No brand logos or text detected.</p>
           )}
 
           <div className="text-sm font-mono text-gray-500 mb-2">RISK LEVEL:</div>
-          <div className="text-3xl font-bold mb-4">{riskLevel}%</div>
+          <div className="text-3xl font-bold mb-4">{riskLevel !== null ? `${riskLevel}%` : 'N/A'}</div>
           <div className="text-sm font-mono text-gray-500 mb-2">EXPLANATION:</div>
           <p className="text-lg leading-relaxed text-gray-800">{explanation}</p>
         </div>
