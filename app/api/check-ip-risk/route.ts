@@ -56,10 +56,16 @@ export async function POST(req: NextRequest) {
       const imageBuffer = Buffer.from(base64Content, 'base64');
 
       const [logoResult] = await client.logoDetection({ image: { content: imageBuffer } });
-      const logos = logoResult.logoAnnotations?.map(l => l.description.toLowerCase()) || [];
+      const logos =
+        logoResult.logoAnnotations
+          ?.map(l => l.description?.toLowerCase())
+          .filter(Boolean) as string[] || [];
 
       const [textResult] = await client.textDetection({ image: { content: imageBuffer } });
-      const textsRaw = textResult.textAnnotations?.map(t => t.description.toLowerCase()) || [];
+      const textsRaw =
+        textResult.textAnnotations
+          ?.map(t => t.description?.toLowerCase())
+          .filter(Boolean) as string[] || [];
       const texts = textsRaw.length > 1 ? textsRaw.slice(1) : [];
 
       detectedItems = Array.from(new Set([...logos, ...texts]));
